@@ -1,11 +1,12 @@
--- [[ Full Undetected & Assetless Roblox UI Library ]]
+-- [[ Monolithic Assetless & Undetected UI Library ]]
 
 local cloneref = cloneref or function(obj) return obj end
 
+-- Безопасное получение сервисов Roblox (защита от хуков)
 local Services = setmetatable({}, {
     __index = function(self, serviceName)
-        local rawService = game:GetService(serviceName)
-        if rawService then
+        local success, rawService = pcall(function() return game:GetService(serviceName) end)
+        if success and rawService then
             return cloneref(rawService)
         end
         return nil
@@ -14,28 +15,18 @@ local Services = setmetatable({}, {
 
 local UserInputService = Services.UserInputService
 local TweenService = Services.TweenService
-local RunService = Services.RunService
 local CoreGui = Services.CoreGui
 local Players = Services.Players
 
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-
 local Library = {
     Themes = {
-        Default = {
-            MainBackground = Color3.fromRGB(20, 20, 20),
-            SecondaryBackground = Color3.fromRGB(30, 30, 30),
-            Accent = Color3.fromRGB(0, 140, 255),
-            Text = Color3.fromRGB(255, 255, 255),
-            SubText = Color3.fromRGB(160, 160, 160),
-            Border = Color3.fromRGB(40, 40, 40)
-        }
-    },
-    Shapes = {
-        Circle = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512 },
-        Squircle = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 310 },
-        Square = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512 }
+        MainBackground = Color3.fromRGB(15, 15, 15),
+        SecondaryBackground = Color3.fromRGB(24, 24, 24),
+        ContainerBackground = Color3.fromRGB(32, 32, 32),
+        Accent = Color3.fromRGB(0, 140, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        SubText = Color3.fromRGB(160, 160, 160),
+        Border = Color3.fromRGB(45, 45, 45)
     }
 }
 
@@ -92,33 +83,44 @@ function Library:MakeDraggable(gui, handle)
 end
 
 function Library:CreateWindow(titleText)
+    -- Безопасное удаление старого UI с таким же именем (если перезапускаешь)
+    local uiName = "UndetectedUI_Engine"
+    local parentTarget
+
+    if gethui then
+        parentTarget = gethui()
+    elseif syn and syn.protect_gui then
+        parentTarget = CoreGui
+    else
+        parentTarget = CoreGui
+    end
+
+    if parentTarget:FindFirstChild(uiName) then
+        parentTarget[uiName]:Destroy()
+    end
+
     local ScreenGui = Library:Create("ScreenGui", {
-        Name = "UndetectedUI_" .. tostring(math.random(10000, 99999)),
+        Name = uiName,
         ResetOnSpawn = false,
         DisplayOrder = 999
     })
 
-    -- Защищенная загрузка в контейнер
-    if gethui then
-        ScreenGui.Parent = gethui()
-    elseif syn and syn.protect_gui then
+    if syn and syn.protect_gui then
         syn.protect_gui(ScreenGui)
-        ScreenGui.Parent = CoreGui
-    else
-        ScreenGui.Parent = CoreGui
     end
+    ScreenGui.Parent = parentTarget
 
     local MainFrame = Library:Create("Frame", {
         Name = "MainFrame",
-        Size = UDim2.new(0, 500, 0, 350),
-        Position = UDim2.new(0.5, -250, 0.5, -175),
-        BackgroundColor3 = Library.Themes.Default.MainBackground,
+        Size = UDim2.new(0, 520, 0, 360),
+        Position = UDim2.new(0.5, -260, 0.5, -180),
+        BackgroundColor3 = Library.Themes.MainBackground,
         BorderSizePixel = 0,
         ClipsDescendants = true
     }, {
         Library:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
         Library:Create("UIStroke", {
-            Color = Library.Themes.Default.Border,
+            Color = Library.Themes.Border,
             Thickness = 1
         })
     })
@@ -127,16 +129,16 @@ function Library:CreateWindow(titleText)
     local TopBar = Library:Create("Frame", {
         Name = "TopBar",
         Size = UDim2.new(1, 0, 0, 40),
-        BackgroundColor3 = Library.Themes.Default.SecondaryBackground,
+        BackgroundColor3 = Library.Themes.SecondaryBackground,
         BorderSizePixel = 0
     }, {
         Library:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
         Library:Create("TextLabel", {
             Name = "Title",
-            Text = titleText or "UI Window",
+            Text = titleText or "UI Hub",
             Font = Enum.Font.SourceSansBold,
             TextSize = 16,
-            TextColor3 = Library.Themes.Default.Text,
+            TextColor3 = Library.Themes.Text,
             Size = UDim2.new(1, -50, 1, 0),
             Position = UDim2.new(0, 15, 0, 0),
             TextXAlignment = Enum.TextXAlignment.Left,
@@ -151,8 +153,14 @@ function Library:CreateWindow(titleText)
         Name = "TabContainer",
         Size = UDim2.new(0, 130, 1, -40),
         Position = UDim2.new(0, 0, 0, 40),
-        BackgroundColor3 = Library.Themes.Default.SecondaryBackground,
+        BackgroundColor3 = Library.Themes.SecondaryBackground,
         BorderSizePixel = 0
+    }, {
+        Library:Create("UIPadding", {
+            PaddingTop = UDim.new(0, 8),
+            PaddingLeft = UDim.new(0, 5),
+            PaddingRight = UDim.new(0, 5)
+        })
     })
     TabContainer.Parent = MainFrame
 
@@ -170,22 +178,21 @@ function Library:CreateWindow(titleText)
     })
     ContentContainer.Parent = MainFrame
 
-    local Window = { CurrentTab = nil }
+    local Window = { CurrentTab = nil, Tabs = {} }
 
     function Window:CreateTab(tabName)
         local TabButton = Library:Create("TextButton", {
             Name = tabName .. "_Button",
-            Size = UDim2.new(1, -10, 0, 30),
-            Position = UDim2.new(0, 5, 0, 0),
-            BackgroundColor3 = Library.Themes.Default.MainBackground,
+            Size = UDim2.new(1, 0, 0, 32),
+            BackgroundColor3 = Library.Themes.MainBackground,
             Text = tabName,
-            TextColor3 = Library.Themes.Default.SubText,
-            Font = Enum.Font.SourceSans,
+            TextColor3 = Library.Themes.SubText,
+            Font = Enum.Font.SourceSansBold,
             TextSize = 14,
             BorderSizePixel = 0,
             AutoButtonColor = false
         }, {
-            Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) })
+            Library:Create("UICorner", { CornerRadius = UDim.new(0, 6) })
         })
         TabButton.Parent = TabContainer
 
@@ -194,12 +201,17 @@ function Library:CreateWindow(titleText)
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             Visible = false,
-            ScrollBarThickness = 2,
+            BorderSizePixel = 0,
+            ScrollBarThickness = 3,
+            ScrollBarImageColor3 = Library.Themes.Border,
             CanvasSize = UDim2.new(0, 0, 0, 0)
         }, {
             Library:Create("UIListLayout", {
                 SortOrder = Enum.SortOrder.LayoutOrder,
                 Padding = UDim.new(0, 8)
+            }),
+            Library:Create("UIPadding", {
+                PaddingRight = UDim.new(0, 5)
             })
         })
         TabContent.Parent = ContentContainer
@@ -214,35 +226,36 @@ function Library:CreateWindow(titleText)
             end
             for _, child in ipairs(TabContainer:GetChildren()) do
                 if child:IsA("TextButton") then
-                    child.TextColor3 = Library.Themes.Default.SubText
-                    child.BackgroundColor3 = Library.Themes.Default.MainBackground
+                    child.TextColor3 = Library.Themes.SubText
+                    child.BackgroundColor3 = Library.Themes.MainBackground
                 end
             end
             TabContent.Visible = true
-            TabButton.TextColor3 = Library.Themes.Default.Text
-            TabButton.BackgroundColor3 = Library.Themes.Default.Accent
+            TabButton.TextColor3 = Library.Themes.Text
+            TabButton.BackgroundColor3 = Library.Themes.Accent
         end)
 
         if not Window.CurrentTab then
             Window.CurrentTab = TabContent
             TabContent.Visible = true
-            TabButton.TextColor3 = Library.Themes.Default.Text
-            TabButton.BackgroundColor3 = Library.Themes.Default.Accent
+            TabButton.TextColor3 = Library.Themes.Text
+            TabButton.BackgroundColor3 = Library.Themes.Accent
         end
 
         local Tab = {}
 
         function Tab:AddButton(btnText, callback)
             local Button = Library:Create("TextButton", {
-                Size = UDim2.new(1, -5, 0, 32),
-                BackgroundColor3 = Library.Themes.Default.SecondaryBackground,
+                Size = UDim2.new(1, 0, 0, 34),
+                BackgroundColor3 = Library.Themes.ContainerBackground,
                 Text = btnText,
-                TextColor3 = Library.Themes.Default.Text,
+                TextColor3 = Library.Themes.Text,
                 Font = Enum.Font.SourceSansBold,
                 TextSize = 14,
-                BorderSizePixel = 0
+                BorderSizePixel = 0,
+                AutoButtonColor = true
             }, {
-                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) })
+                Library:Create("UICorner", { CornerRadius = UDim.new(0, 6) })
             })
             Button.Parent = TabContent
 
@@ -254,15 +267,15 @@ function Library:CreateWindow(titleText)
         function Tab:AddToggle(toggleText, defaultState, callback)
             local state = defaultState or false
             local ToggleFrame = Library:Create("Frame", {
-                Size = UDim2.new(1, -5, 0, 32),
-                BackgroundColor3 = Library.Themes.Default.SecondaryBackground
+                Size = UDim2.new(1, 0, 0, 36),
+                BackgroundColor3 = Library.Themes.ContainerBackground
             }, {
-                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) }),
+                Library:Create("UICorner", { CornerRadius = UDim.new(0, 6) }),
                 Library:Create("TextLabel", {
                     Text = toggleText,
-                    Size = UDim2.new(1, -40, 1, 0),
-                    Position = UDim2.new(0, 10, 0, 0),
-                    TextColor3 = Library.Themes.Default.Text,
+                    Size = UDim2.new(1, -50, 1, 0),
+                    Position = UDim2.new(0, 12, 0, 0),
+                    TextColor3 = Library.Themes.Text,
                     Font = Enum.Font.SourceSans,
                     TextSize = 14,
                     TextXAlignment = Enum.TextXAlignment.Left,
@@ -271,14 +284,15 @@ function Library:CreateWindow(titleText)
             })
             ToggleFrame.Parent = TabContent
 
-            local Indicator = Library:Create("Frame", {
-                Size = UDim2.new(0, 18, 0, 18),
-                Position = UDim2.new(1, -28, 0.5, -9),
-                BackgroundColor3 = state and Library.Themes.Default.Accent or Library.Themes.Default.MainBackground
+            local Switch = Library:Create("Frame", {
+                Size = UDim2.new(0, 20, 0, 20),
+                Position = UDim2.new(1, -30, 0.5, -10),
+                BackgroundColor3 = state and Library.Themes.Accent or Library.Themes.MainBackground
             }, {
-                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) })
+                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) }),
+                Library:Create("UIStroke", { Color = Library.Themes.Border, Thickness = 1 })
             })
-            Indicator.Parent = ToggleFrame
+            Switch.Parent = ToggleFrame
 
             local ClickArea = Library:Create("TextButton", {
                 Size = UDim2.new(1, 0, 1, 0),
@@ -289,7 +303,7 @@ function Library:CreateWindow(titleText)
 
             ClickArea.MouseButton1Click:Connect(function()
                 state = not state
-                Indicator.BackgroundColor3 = state and Library.Themes.Default.Accent or Library.Themes.Default.MainBackground
+                Switch.BackgroundColor3 = state and Library.Themes.Accent or Library.Themes.MainBackground
                 pcall(callback, state)
             end)
         end
@@ -300,4 +314,23 @@ function Library:CreateWindow(titleText)
     return Window
 end
 
-return Library
+-- =======================================================
+-- [[ ТЕСТОВЫЙ ЗАПУСК С КЛИЕНТА ]]
+-- =======================================================
+
+local Window = Library:CreateWindow("Undetected Script Hub")
+
+local MainTab = Window:CreateTab("Главная")
+local MiscTab = Window:CreateTab("Разное")
+
+MainTab:AddButton("Нажать для проверки", function()
+    print("Кнопка работает!")
+end)
+
+MainTab:AddToggle("Включить андетект режим", true, function(state)
+    print("Состояние переключателя:", state)
+end)
+
+MiscTab:AddButton("Тестовая кнопка 2", function()
+    print("Работает во второй вкладке")
+end)
