@@ -1,336 +1,424 @@
--- [[ Monolithic Assetless & Undetected UI Library ]]
+-- [[ WindUI: Undetected & Assetless Monolith ]]
 
 local cloneref = cloneref or function(obj) return obj end
 
--- Безопасное получение сервисов Roblox (защита от хуков)
 local Services = setmetatable({}, {
-    __index = function(self, serviceName)
+    __index = function(_, serviceName)
         local success, rawService = pcall(function() return game:GetService(serviceName) end)
-        if success and rawService then
-            return cloneref(rawService)
-        end
-        return nil
+        return (success and rawService) and cloneref(rawService) or nil
     end
 })
 
-local UserInputService = Services.UserInputService
 local TweenService = Services.TweenService
+local UserInputService = Services.UserInputService
 local CoreGui = Services.CoreGui
 local Players = Services.Players
 
-local Library = {
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local WindUI = {
+    Title = "WindUI",
     Themes = {
-        MainBackground = Color3.fromRGB(15, 15, 15),
-        SecondaryBackground = Color3.fromRGB(24, 24, 24),
-        ContainerBackground = Color3.fromRGB(32, 32, 32),
-        Accent = Color3.fromRGB(0, 140, 255),
-        Text = Color3.fromRGB(255, 255, 255),
-        SubText = Color3.fromRGB(160, 160, 160),
-        Border = Color3.fromRGB(45, 45, 45)
-    }
+        Dark = {
+            Background = Color3.fromRGB(18, 18, 22),
+            Secondary = Color3.fromRGB(25, 25, 30),
+            Container = Color3.fromRGB(32, 32, 38),
+            Accent = Color3.fromRGB(90, 100, 240),
+            Text = Color3.fromRGB(240, 240, 245),
+            SubText = Color3.fromRGB(140, 140, 150),
+            Border = Color3.fromRGB(45, 45, 55)
+        }
+    },
+    CurrentTheme = "Dark"
 }
 
-function Library:Create(instanceType, properties, children)
-    local obj = cloneref(Instance.new(instanceType))
-    for prop, val in pairs(properties or {}) do
-        obj[prop] = val
+function WindUI:Create(class, props, children)
+    local inst = cloneref(Instance.new(class))
+    for k, v in pairs(props or {}) do
+        inst[k] = v
     end
     for _, child in ipairs(children or {}) do
-        child.Parent = obj
+        child.Parent = inst
     end
-    return obj
+    return inst
 end
 
-function Library:MakeDraggable(gui, handle)
-    local dragging = false
-    local dragInput, dragStart, startPos
-
-    local function update(input)
-        local delta = input.Position - dragStart
-        gui.Position = UDim2.new(
-            startPos.X.Scale, 
-            startPos.X.Offset + delta.X, 
-            startPos.Y.Scale, 
-            startPos.Y.Offset + delta.Y
-        )
-    end
-
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = gui.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
-    end)
+function WindUI:Tween(inst, info, props)
+    local tween = TweenService:Create(inst, TweenInfo.new(unpack(info)), props)
+    tween:Play()
+    return tween
 end
 
-function Library:CreateWindow(titleText)
-    -- Безопасное удаление старого UI с таким же именем (если перезапускаешь)
-    local uiName = "UndetectedUI_Engine"
-    local parentTarget
+function WindUI:CreateWindow(config)
+    config = config or {}
+    local windowTitle = config.Title or "WindUI"
+    local theme = WindUI.Themes[WindUI.CurrentTheme]
 
-    if gethui then
-        parentTarget = gethui()
-    elseif syn and syn.protect_gui then
-        parentTarget = CoreGui
-    else
-        parentTarget = CoreGui
+    local targetParent = gethui and gethui() or (syn and syn.protect_gui and CoreGui) or CoreGui
+    local uiName = "WindUI_Engine_" .. tostring(math.random(1000, 9999))
+
+    if targetParent:FindFirstChild(uiName) then
+        targetParent[uiName]:Destroy()
     end
 
-    if parentTarget:FindFirstChild(uiName) then
-        parentTarget[uiName]:Destroy()
-    end
-
-    local ScreenGui = Library:Create("ScreenGui", {
+    local ScreenGui = WindUI:Create("ScreenGui", {
         Name = uiName,
         ResetOnSpawn = false,
         DisplayOrder = 999
     })
-
+    
     if syn and syn.protect_gui then
         syn.protect_gui(ScreenGui)
     end
-    ScreenGui.Parent = parentTarget
+    ScreenGui.Parent = targetParent
 
-    local MainFrame = Library:Create("Frame", {
-        Name = "MainFrame",
-        Size = UDim2.new(0, 520, 0, 360),
-        Position = UDim2.new(0.5, -260, 0.5, -180),
-        BackgroundColor3 = Library.Themes.MainBackground,
+    -- Main Frame
+    local Main = WindUI:Create("Frame", {
+        Name = "Main",
+        Size = UDim2.new(0, 580, 0, 380),
+        Position = UDim2.new(0.5, -290, 0.5, -190),
+        BackgroundColor3 = theme.Background,
         BorderSizePixel = 0,
         ClipsDescendants = true
     }, {
-        Library:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
-        Library:Create("UIStroke", {
-            Color = Library.Themes.Border,
-            Thickness = 1
-        })
+        WindUI:Create("UICorner", { CornerRadius = UDim.new(0, 10) }),
+        WindUI:Create("UIStroke", { Color = theme.Border, Thickness = 1 })
     })
-    MainFrame.Parent = ScreenGui
+    Main.Parent = ScreenGui
 
-    local TopBar = Library:Create("Frame", {
+    -- TopBar (Header)
+    local TopBar = WindUI:Create("Frame", {
         Name = "TopBar",
-        Size = UDim2.new(1, 0, 0, 40),
-        BackgroundColor3 = Library.Themes.SecondaryBackground,
+        Size = UDim2.new(1, 0, 0, 42),
+        BackgroundColor3 = theme.Secondary,
         BorderSizePixel = 0
     }, {
-        Library:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
-        Library:Create("TextLabel", {
-            Name = "Title",
-            Text = titleText or "UI Hub",
-            Font = Enum.Font.SourceSansBold,
-            TextSize = 16,
-            TextColor3 = Library.Themes.Text,
-            Size = UDim2.new(1, -50, 1, 0),
-            Position = UDim2.new(0, 15, 0, 0),
+        WindUI:Create("UICorner", { CornerRadius = UDim.new(0, 10) }),
+        WindUI:Create("TextLabel", {
+            Text = windowTitle,
+            Font = Enum.Font.GothamBold,
+            TextSize = 14,
+            TextColor3 = theme.Text,
+            Size = UDim2.new(1, -60, 1, 0),
+            Position = UDim2.new(0, 16, 0, 0),
             TextXAlignment = Enum.TextXAlignment.Left,
             BackgroundTransparency = 1
         })
     })
-    TopBar.Parent = MainFrame
+    TopBar.Parent = Main
 
-    Library:MakeDraggable(MainFrame, TopBar)
+    -- Dragging Logic
+    local dragging, dragStart, startPos
+    TopBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 
-    local TabContainer = Library:Create("Frame", {
-        Name = "TabContainer",
-        Size = UDim2.new(0, 130, 1, -40),
-        Position = UDim2.new(0, 0, 0, 40),
-        BackgroundColor3 = Library.Themes.SecondaryBackground,
+    -- Sidebar / Tab List
+    local Sidebar = WindUI:Create("Frame", {
+        Name = "Sidebar",
+        Size = UDim2.new(0, 140, 1, -42),
+        Position = UDim2.new(0, 0, 0, 42),
+        BackgroundColor3 = theme.Secondary,
         BorderSizePixel = 0
     }, {
-        Library:Create("UIPadding", {
-            PaddingTop = UDim.new(0, 8),
-            PaddingLeft = UDim.new(0, 5),
-            PaddingRight = UDim.new(0, 5)
-        })
+        WindUI:Create("UIPadding", { PaddingTop = UDim.new(0, 8), PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) }),
+        WindUI:Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) })
     })
-    TabContainer.Parent = MainFrame
+    Sidebar.Parent = Main
 
-    local TabListLayout = Library:Create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 5)
-    })
-    TabListLayout.Parent = TabContainer
-
-    local ContentContainer = Library:Create("Frame", {
-        Name = "ContentContainer",
-        Size = UDim2.new(1, -140, 1, -50),
-        Position = UDim2.new(0, 135, 0, 45),
+    -- Content Area
+    local Container = WindUI:Create("Frame", {
+        Name = "Container",
+        Size = UDim2.new(1, -150, 1, -50),
+        Position = UDim2.new(0, 145, 0, 46),
         BackgroundTransparency = 1
     })
-    ContentContainer.Parent = MainFrame
+    Container.Parent = Main
 
-    local Window = { CurrentTab = nil, Tabs = {} }
+    local WindowObj = { CurrentTab = nil }
 
-    function Window:CreateTab(tabName)
-        local TabButton = Library:Create("TextButton", {
-            Name = tabName .. "_Button",
+    function WindowObj:Tab(tabConfig)
+        local tabName = type(tabConfig) == "table" and tabConfig.Title or tabConfig
+        
+        local TabBtn = WindUI:Create("TextButton", {
             Size = UDim2.new(1, 0, 0, 32),
-            BackgroundColor3 = Library.Themes.MainBackground,
-            Text = tabName,
-            TextColor3 = Library.Themes.SubText,
-            Font = Enum.Font.SourceSansBold,
-            TextSize = 14,
+            BackgroundColor3 = theme.Background,
+            Text = "  " .. tabName,
+            TextColor3 = theme.SubText,
+            Font = Enum.Font.GothamMedium,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
             BorderSizePixel = 0,
             AutoButtonColor = false
         }, {
-            Library:Create("UICorner", { CornerRadius = UDim.new(0, 6) })
+            WindUI:Create("UICorner", { CornerRadius = UDim.new(0, 6) })
         })
-        TabButton.Parent = TabContainer
+        TabBtn.Parent = Sidebar
 
-        local TabContent = Library:Create("ScrollingFrame", {
-            Name = tabName .. "_Content",
+        local TabPage = WindUI:Create("ScrollingFrame", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
             Visible = false,
             BorderSizePixel = 0,
-            ScrollBarThickness = 3,
-            ScrollBarImageColor3 = Library.Themes.Border,
+            ScrollBarThickness = 2,
+            ScrollBarImageColor3 = theme.Border,
             CanvasSize = UDim2.new(0, 0, 0, 0)
         }, {
-            Library:Create("UIListLayout", {
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 8)
-            }),
-            Library:Create("UIPadding", {
-                PaddingRight = UDim.new(0, 5)
-            })
+            WindUI:Create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
+            WindUI:Create("UIPadding", { PaddingRight = UDim.new(0, 4) })
         })
-        TabContent.Parent = ContentContainer
+        TabPage.Parent = Container
 
-        TabContent.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            TabContent.CanvasSize = UDim2.new(0, 0, 0, TabContent.UIListLayout.AbsoluteContentSize.Y + 10)
+        TabPage.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabPage.CanvasSize = UDim2.new(0, 0, 0, TabPage.UIListLayout.AbsoluteContentSize.Y + 10)
         end)
 
-        TabButton.MouseButton1Click:Connect(function()
-            for _, child in ipairs(ContentContainer:GetChildren()) do
-                if child:IsA("ScrollingFrame") then child.Visible = false end
+        TabBtn.MouseButton1Click:Connect(function()
+            for _, page in ipairs(Container:GetChildren()) do
+                if page:IsA("ScrollingFrame") then page.Visible = false end
             end
-            for _, child in ipairs(TabContainer:GetChildren()) do
-                if child:IsA("TextButton") then
-                    child.TextColor3 = Library.Themes.SubText
-                    child.BackgroundColor3 = Library.Themes.MainBackground
+            for _, btn in ipairs(Sidebar:GetChildren()) do
+                if btn:IsA("TextButton") then
+                    WindUI:Tween(btn, {0.15}, {BackgroundColor3 = theme.Background, TextColor3 = theme.SubText})
                 end
             end
-            TabContent.Visible = true
-            TabButton.TextColor3 = Library.Themes.Text
-            TabButton.BackgroundColor3 = Library.Themes.Accent
+            TabPage.Visible = true
+            WindUI:Tween(TabBtn, {0.15}, {BackgroundColor3 = theme.Accent, TextColor3 = theme.Text})
         end)
 
-        if not Window.CurrentTab then
-            Window.CurrentTab = TabContent
-            TabContent.Visible = true
-            TabButton.TextColor3 = Library.Themes.Text
-            TabButton.BackgroundColor3 = Library.Themes.Accent
+        if not WindowObj.CurrentTab then
+            WindowObj.CurrentTab = TabPage
+            TabPage.Visible = true
+            TabBtn.BackgroundColor3 = theme.Accent
+            TabBtn.TextColor3 = theme.Text
         end
 
-        local Tab = {}
+        local TabObj = {}
 
-        function Tab:AddButton(btnText, callback)
-            local Button = Library:Create("TextButton", {
-                Size = UDim2.new(1, 0, 0, 34),
-                BackgroundColor3 = Library.Themes.ContainerBackground,
-                Text = btnText,
-                TextColor3 = Library.Themes.Text,
-                Font = Enum.Font.SourceSansBold,
-                TextSize = 14,
-                BorderSizePixel = 0,
-                AutoButtonColor = true
+        -- [[ WindUI Elements ]] --
+
+        function TabObj:Button(btnConfig)
+            local title = type(btnConfig) == "table" and btnConfig.Title or btnConfig
+            local callback = type(btnConfig) == "table" and btnConfig.Callback or function() end
+
+            local BtnFrame = WindUI:Create("TextButton", {
+                Size = UDim2.new(1, 0, 0, 36),
+                BackgroundColor3 = theme.Container,
+                Text = title,
+                TextColor3 = theme.Text,
+                Font = Enum.Font.GothamMedium,
+                TextSize = 13,
+                BorderSizePixel = 0
             }, {
-                Library:Create("UICorner", { CornerRadius = UDim.new(0, 6) })
+                WindUI:Create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+                WindUI:Create("UIStroke", { Color = theme.Border, Thickness = 1 })
             })
-            Button.Parent = TabContent
+            BtnFrame.Parent = TabPage
 
-            Button.MouseButton1Click:Connect(function()
+            BtnFrame.MouseButton1Click:Connect(function()
+                WindUI:Tween(BtnFrame, {0.1}, {BackgroundColor3 = theme.Accent})
+                task.delay(0.1, function()
+                    WindUI:Tween(BtnFrame, {0.15}, {BackgroundColor3 = theme.Container})
+                end)
                 pcall(callback)
             end)
         end
 
-        function Tab:AddToggle(toggleText, defaultState, callback)
-            local state = defaultState or false
-            local ToggleFrame = Library:Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 36),
-                BackgroundColor3 = Library.Themes.ContainerBackground
+        function TabObj:Toggle(tglConfig)
+            local title = tglConfig.Title or "Toggle"
+            local state = tglConfig.Value or false
+            local callback = tglConfig.Callback or function() end
+
+            local TglFrame = WindUI:Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 38),
+                BackgroundColor3 = theme.Container
             }, {
-                Library:Create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-                Library:Create("TextLabel", {
-                    Text = toggleText,
-                    Size = UDim2.new(1, -50, 1, 0),
+                WindUI:Create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+                WindUI:Create("UIStroke", { Color = theme.Border, Thickness = 1 }),
+                WindUI:Create("TextLabel", {
+                    Text = title,
+                    Size = UDim2.new(1, -60, 1, 0),
                     Position = UDim2.new(0, 12, 0, 0),
-                    TextColor3 = Library.Themes.Text,
-                    Font = Enum.Font.SourceSans,
-                    TextSize = 14,
+                    TextColor3 = theme.Text,
+                    Font = Enum.Font.GothamMedium,
+                    TextSize = 13,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     BackgroundTransparency = 1
                 })
             })
-            ToggleFrame.Parent = TabContent
+            TglFrame.Parent = TabPage
 
-            local Switch = Library:Create("Frame", {
-                Size = UDim2.new(0, 20, 0, 20),
-                Position = UDim2.new(1, -30, 0.5, -10),
-                BackgroundColor3 = state and Library.Themes.Accent or Library.Themes.MainBackground
+            local Switch = WindUI:Create("Frame", {
+                Size = UDim2.new(0, 36, 0, 20),
+                Position = UDim2.new(1, -46, 0.5, -10),
+                BackgroundColor3 = state and theme.Accent or theme.Secondary
             }, {
-                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) }),
-                Library:Create("UIStroke", { Color = Library.Themes.Border, Thickness = 1 })
+                WindUI:Create("UICorner", { CornerRadius = UDim.new(1, 0) })
             })
-            Switch.Parent = ToggleFrame
+            Switch.Parent = TglFrame
 
-            local ClickArea = Library:Create("TextButton", {
+            local Dot = WindUI:Create("Frame", {
+                Size = UDim2.new(0, 14, 0, 14),
+                Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
+                BackgroundColor3 = theme.Text
+            }, {
+                WindUI:Create("UICorner", { CornerRadius = UDim.new(1, 0) })
+            })
+            Dot.Parent = Switch
+
+            local ClickBtn = WindUI:Create("TextButton", {
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundTransparency = 1,
                 Text = ""
             })
-            ClickArea.Parent = ToggleFrame
+            ClickBtn.Parent = TglFrame
 
-            ClickArea.MouseButton1Click:Connect(function()
+            ClickBtn.MouseButton1Click:Connect(function()
                 state = not state
-                Switch.BackgroundColor3 = state and Library.Themes.Accent or Library.Themes.MainBackground
+                WindUI:Tween(Switch, {0.15}, {BackgroundColor3 = state and theme.Accent or theme.Secondary})
+                WindUI:Tween(Dot, {0.15}, {Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)})
                 pcall(callback, state)
             end)
         end
 
-        return Tab
+        function TabObj:Slider(sldConfig)
+            local title = sldConfig.Title or "Slider"
+            local min = sldConfig.Min or 0
+            local max = sldConfig.Max or 100
+            local default = sldConfig.Value or min
+            local callback = sldConfig.Callback or function() end
+
+            local SldFrame = WindUI:Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 48),
+                BackgroundColor3 = theme.Container
+            }, {
+                WindUI:Create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+                WindUI:Create("UIStroke", { Color = theme.Border, Thickness = 1 }),
+                WindUI:Create("TextLabel", {
+                    Text = title,
+                    Size = UDim2.new(1, -60, 0, 24),
+                    Position = UDim2.new(0, 12, 0, 2),
+                    TextColor3 = theme.Text,
+                    Font = Enum.Font.GothamMedium,
+                    TextSize = 13,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    BackgroundTransparency = 1
+                })
+            })
+            SldFrame.Parent = TabPage
+
+            local ValLabel = WindUI:Create("TextLabel", {
+                Text = tostring(default),
+                Size = UDim2.new(0, 40, 0, 24),
+                Position = UDim2.new(1, -52, 0, 2),
+                TextColor3 = theme.SubText,
+                Font = Enum.Font.GothamBold,
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Right,
+                BackgroundTransparency = 1
+            })
+            ValLabel.Parent = SldFrame
+
+            local Bar = WindUI:Create("Frame", {
+                Size = UDim2.new(1, -24, 0, 6),
+                Position = UDim2.new(0, 12, 1, -14),
+                BackgroundColor3 = theme.Secondary
+            }, {
+                WindUI:Create("UICorner", { CornerRadius = UDim.new(1, 0) })
+            })
+            Bar.Parent = SldFrame
+
+            local Fill = WindUI:Create("Frame", {
+                Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
+                BackgroundColor3 = theme.Accent
+            }, {
+                WindUI:Create("UICorner", { CornerRadius = UDim.new(1, 0) })
+            })
+            Fill.Parent = Bar
+
+            local draggingSld = false
+            local function updateSlider(input)
+                local pos = math.clamp((input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+                local val = math.floor(min + (max - min) * pos)
+                Fill.Size = UDim2.new(pos, 0, 1, 0)
+                ValLabel.Text = tostring(val)
+                pcall(callback, val)
+            end
+
+            Bar.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingSld = true
+                    updateSlider(input)
+                end
+            end)
+
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingSld = false
+                end
+            end)
+
+            UserInputService.InputChanged:Connect(function(input)
+                if draggingSld and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateSlider(input)
+                end
+            end)
+        end
+
+        return TabObj
     end
 
-    return Window
+    return WindowObj
 end
 
--- =======================================================
--- [[ ТЕСТОВЫЙ ЗАПУСК С КЛИЕНТА ]]
--- =======================================================
+-- ==========================================
+-- [[ ПРИМЕР ИСПОЛЬЗОВАНИЯ В СТИЛЕ WINDUI ]]
+-- ==========================================
 
-local Window = Library:CreateWindow("Undetected Script Hub")
+local Window = WindUI:CreateWindow({
+    Title = "WindUI v2 (Undetected)"
+})
 
-local MainTab = Window:CreateTab("Главная")
-local MiscTab = Window:CreateTab("Разное")
+local MainTab = Window:Tab({ Title = "Main" })
+local PlayerTab = Window:Tab({ Title = "Player" })
 
-MainTab:AddButton("Нажать для проверки", function()
-    print("Кнопка работает!")
-end)
+MainTab:Button({
+    Title = "Выполнить скрипт",
+    Callback = function()
+        print("WindUI Button Clicked!")
+    end
+})
 
-MainTab:AddToggle("Включить андетект режим", true, function(state)
-    print("Состояние переключателя:", state)
-end)
+MainTab:Toggle({
+    Title = "Авто-Фарм",
+    Value = false,
+    Callback = function(val)
+        print("AutoFarm:", val)
+    end
+})
 
-MiscTab:AddButton("Тестовая кнопка 2", function()
-    print("Работает во второй вкладке")
-end)
+PlayerTab:Slider({
+    Title = "Скорость (WalkSpeed)",
+    Min = 16,
+    Max = 200,
+    Value = 16,
+    Callback = function(val)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = val
+        end
+    end
+})
