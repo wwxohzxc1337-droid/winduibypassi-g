@@ -1,4 +1,19 @@
---[[ UI Library ]]
+--[[
+     _      ___         ____  ______
+    | | /| / (_)__  ___/ / / / /  _/
+    | |/ |/ / / _ \/ _  / /_/ // /  
+    |__/|__/_/_//_/\_,_/\____/___/
+    
+    v1.6.66  |  2026-07-29  |  Roblox UI Library for scripts
+    
+    To view the source code, see the `src/` folder on the official GitHub repository.
+    
+    Author: Footagesus (Footages, .ftgs, oftgs)
+    Github: https://github.com/Footagesus/WindUI
+    Discord: https://discord.gg/ftgs-development-hub-1300692552005189632
+    License: MIT
+]]
+
 type ConfigType__DARKLUA_TYPE_a={
 Object:Instance,
 Camera:Instance?,
@@ -25000,7 +25015,7 @@ if not u then
 if m and m.Window and m.Window.Debug then local
 x, z=v:find":%d+: "
 
-warn("[DBG] "..v)
+warn("[ WindUI: DEBUG Mode ] "..v)
 
 return m:Notify{
 Title="DEBUG Mode: Error",
@@ -25618,7 +25633,7 @@ Colors={
 }.IconFrame
 J.Parent=H
 elseif string.find(v,"http")and not string.find(v,"roblox.com")then
-local J="u/"..A.."/assets/."..B.."-"..x..".png"
+local J="WindUI/"..A.."/assets/."..B.."-"..x..".png"
 local L,M=pcall(function()
 task.spawn(function()
 local L=p.Request
@@ -25639,7 +25654,7 @@ H.ImageLabel.Image=N
 else
 warn(
 string.format(
-"[UI] Failed to load asset '%s': %s",
+"[ WindUI.Creator ] Failed to load custom asset '%s': %s",
 J,
 tostring(N)
 )
@@ -25652,7 +25667,7 @@ end)
 end)
 if not L then
 warn(
-"[UI] '"..identifyexecutor()
+"[ WindUI.Creator ]  '"..identifyexecutor()
 or"Studio".."' doesnt support the URL Images. Error: "..M
 )
 
@@ -26701,13 +26716,13 @@ New=a.load'p'.New
 
 return[[
 {
-    "name": "ui",
-    "version": "1.0.0",
+    "name": "windui",
+    "version": "1.6.66",
     "main": "./dist/main.lua",
-    "repository": "",
-    "discord": "",
-    "author": "",
-    "description": "",
+    "repository": "https://github.com/Footagesus/WindUI",
+    "discord": "https://discord.gg/ftgs-development-hub-1300692552005189632",
+    "author": "Footagesus",
+    "description": "Roblox UI Library for scripts",
     "license": "MIT",
     "scripts": {
         "dev": "bash build/build.sh dev $INPUT_FILE",
@@ -26719,10 +26734,10 @@ return[[
         "updater": "python3 updater/main.py"
     },
     "keywords": [
-        "",
-        "",
+        "ui-library",
+        "ui-design",
         "script",
-        "",
+        "script-hub",
         "exploiting"
     ],
     "devDependencies": {
@@ -29124,17 +29139,17 @@ end
 
 function ae.Init(af,ag)
 if not ag.Folder then
-warn"[UI] Folder not specified."
+warn"[ WindUI.ConfigManager ] Window.Folder is not specified."
 return false
 end
 if ab:IsStudio()or not writefile then
-warn"[UI] Config unavailable in studio."
+warn"[ WindUI.ConfigManager ] The config system doesn't work in the studio."
 return false
 end
 
 ad=ag
 ae.Folder=ad.Folder
-ae.Path="u/"..tostring(ae.Folder).."/config/"
+ae.Path="WindUI/"..tostring(ae.Folder).."/config/"
 
 if not isfolder(ae.Path)then
 makefolder(ae.Path)
@@ -29153,7 +29168,7 @@ end
 
 function ae.SetPath(af,ag)
 if not ag then
-warn"[UI] Path not specified."
+warn"[ WindUI.ConfigManager ] Custom path is not specified."
 return false
 end
 
@@ -29237,7 +29252,7 @@ end
 
 local ak,al=pcall(function()
 local ak=readfile or function()
-warn"[UI] Config unavailable in studio."
+warn"[ WindUI.ConfigManager ] The config system doesn't work in the studio."
 return nil
 end
 return ac:JSONDecode(ak(ai.Path))
@@ -29324,9 +29339,9 @@ local al,am=pcall(function()
 return ai:Load()
 end)
 if al then
-if ad.Debug then print("[UI] AutoLoad: "..ag)end
+if ad.Debug then print("[ WindUI.ConfigManager ] AutoLoaded config: "..ag)end
 else
-warn("[UI] AutoLoad fail: "..ag.." - "..tostring(am))
+warn("[ WindUI.ConfigManager ] Failed to AutoLoad config: "..ag.." - "..tostring(am))
 end
 end)
 end
@@ -35741,7 +35756,7 @@ if ay then
 ak.PendingConfigData[at.Flag]=nil
 else
 warn(
-"[UI] Pending config fail '"
+"[ WindUI ] Failed to apply pending config for '"
 ..at.Flag
 .."': "
 ..tostring(az)
@@ -37336,14 +37351,13 @@ math.clamp(ax.Y.Offset,aw.MinSize.Y,aw.MaxSize.Y)
 if aw.Topbar=={}then
 aw.Topbar={Height=52,ButtonsType="Default"}
 end
-aw.Topbar.ButtonsType="Default"
 
 if not ai:IsStudio()and aw.Folder and writefile then
-if not isfolder("u/"..aw.Folder)then
-makefolder("u/"..aw.Folder)
+if not isfolder("WindUI/"..aw.Folder)then
+makefolder("WindUI/"..aw.Folder)
 end
-if not isfolder("u/"..aw.Folder.."/assets")then
-makefolder("u/"..aw.Folder.."/assets")
+if not isfolder("WindUI/"..aw.Folder.."/assets")then
+makefolder("WindUI/"..aw.Folder.."/assets")
 end
 if not isfolder(aw.Folder)then
 makefolder(aw.Folder)
@@ -37776,7 +37790,7 @@ Headers={["User-Agent"]="Roblox/Exploit"},
 writefile(r,u)
 end)
 if not u then
-warn("[UI] Video download fail: "..tostring(v))
+warn("[ WindUI.Window.Background ] Failed to download video: "..tostring(v))
 end
 end
 
@@ -37784,9 +37798,9 @@ local u,v=pcall(function()
 return getcustomasset(r)
 end)
 if not u then
-warn("[UI] Video asset fail: "..tostring(v))
+warn("[ WindUI.Window.Background ] Failed to load custom asset: "..tostring(v))
 end
-warn"[UI] VideoFrame custom video warning"
+warn"[ WindUI.Window.Background ] VideoFrame may not work with custom video"
 l=v
 end
 
@@ -37821,7 +37835,7 @@ writefile(r,u)
 end)
 
 if not u then
-warn("[UI] BG download fail: "..tostring(v))
+warn("[ Window.Background ] Failed to download image: "..tostring(v))
 end
 end
 
@@ -37830,7 +37844,7 @@ return getcustomasset(r)
 end)
 
 if not u then
-warn("[UI] BG asset fail: "..tostring(v))
+warn("[ Window.Background ] Failed to load custom asset: "..tostring(v))
 end
 
 i=ao("ImageLabel",{
@@ -38416,14 +38430,14 @@ an.Icon"maximize"
 
 aw:CreateTopbarButton(
 "Fullscreen",
-"maximize",
+aw.Topbar.ButtonsType=="Mac"and"rbxassetid://127426072704909"or"maximize",
 function()
 aw:ToggleFullscreen()
 end,
-998,
+(aw.Topbar.ButtonsType=="Default"and 998 or 999),
 true,
-nil,
-nil
+Color3.fromHex"#60C762",
+aw.Topbar.ButtonsType=="Mac"and 9 or nil
 )
 
 local function SetSize(C)
@@ -38476,7 +38490,29 @@ aw:CreateTopbarButton("Minimize","minus",function()
 if aw.Close then
 aw:Close()
 end
-end,997,nil,nil)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end,(aw.Topbar.ButtonsType=="Default"and 997 or 998),nil,Color3.fromHex"#F4C948")
 
 function aw.OnOpen(C,F)
 aw.OnOpenCallback=F
@@ -39180,7 +39216,7 @@ else
 aw:Destroy()
 end
 end
-end,999,nil,nil)
+end,(aw.Topbar.ButtonsType=="Default"and 999 or 997),nil,Color3.fromHex"#F4695F")
 
 function aw.Tag(L,M)
 if aw.UIElements.Main.Main.Topbar.Center.Visible==false then
@@ -39519,61 +39555,53 @@ Scale=aa.UIScale,
 
 aa.UIScaleObj=ax
 
-local function _rn(n)
-n=n or 8
-local c="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-local s=""
-for i=1,n do
-local r=math.random(1,#c)
-s=s..c:sub(r,r)
-end
-return s
-end
-local _do=math.random(-100000,-1000)
--- internal folders keep stable Name for library refs, ScreenGui name is random
-local _fWindow=at("Folder",{Name="Window"})
-local _fKey=at("Folder",{Name="KeySystem"})
-local _fPop=at("Folder",{Name="Popups"})
-local _fTip=at("Folder",{Name="ToolTips"})
 aa.ScreenGui=at("ScreenGui",{
-Name=_rn(14),
+Name="WindUI",
 Parent=aw,
 IgnoreGuiInset=true,
 ScreenInsets="None",
-DisplayOrder=_do,
-ResetOnSpawn=false,
-ZIndexBehavior="Sibling",
+DisplayOrder=-99999,
 },{
-_fWindow,
-_fKey,
-_fPop,
-_fTip,
+
+at("Folder",{
+Name="Window",
+}),
+
+
+
+
+
+
+at("Folder",{
+Name="KeySystem",
+}),
+at("Folder",{
+Name="Popups",
+}),
+at("Folder",{
+Name="ToolTips",
+}),
 })
+
 aa.NotificationGui=at("ScreenGui",{
-Name=_rn(14),
+Name="WindUI/Notifications",
 Parent=aw,
 IgnoreGuiInset=true,
-ResetOnSpawn=false,
-DisplayOrder=_do+math.random(1,50),
 })
 aa.DropdownGui=at("ScreenGui",{
-Name=_rn(14),
+Name="WindUI/Dropdowns",
 Parent=aw,
 IgnoreGuiInset=true,
-ResetOnSpawn=false,
-DisplayOrder=_do+math.random(51,100),
 })
 aa.TooltipGui=at("ScreenGui",{
-Name=_rn(14),
+Name="WindUI/Tooltips",
 Parent=aw,
 IgnoreGuiInset=true,
-ResetOnSpawn=false,
-DisplayOrder=_do+math.random(101,150),
 })
-pcall(av,aa.ScreenGui)
-pcall(av,aa.NotificationGui)
-pcall(av,aa.DropdownGui)
-pcall(av,aa.TooltipGui)
+av(aa.ScreenGui)
+av(aa.NotificationGui)
+av(aa.DropdownGui)
+av(aa.TooltipGui)
 
 as.Init(aa)
 
@@ -39731,9 +39759,8 @@ function aa.CreateWindow(az,aA)
 local aB=a.load'ak'
 
 if not am:IsStudio()and writefile then
-local _root="u"..tostring(math.random(1000,9999))
-if not isfolder(_root)then
-makefolder(_root)
+if not isfolder"WindUI"then
+makefolder"WindUI"
 end
 if aA.Folder then
 makefolder(aA.Folder)
@@ -39747,7 +39774,7 @@ aA.Window=aa.Window
 aA.Parent=aa.ScreenGui.Window
 
 if aa.Window then
-warn"Window already exists"
+warn"You cannot create more than one window"
 return
 end
 
@@ -39861,25 +39888,5 @@ end
 
 return h
 end
-
-
--- anti-detect: periodically rotate ScreenGui names
-task.spawn(function()
-while aa and aa.ScreenGui do
-task.wait(math.random(30,90))
-pcall(function()
-local function rn(n)
-local c="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-local s=""
-for i=1,(n or 10) do local r=math.random(1,#c) s=s..c:sub(r,r) end
-return s
-end
-if aa.ScreenGui then aa.ScreenGui.Name=rn(12) end
-if aa.NotificationGui then aa.NotificationGui.Name=rn(12) end
-if aa.DropdownGui then aa.DropdownGui.Name=rn(12) end
-if aa.TooltipGui then aa.TooltipGui.Name=rn(12) end
-end)
-end
-end)
 
 return aa
