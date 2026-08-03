@@ -1,185 +1,303 @@
--- [[ UI (Undetected & Assetless Version) ]]
+-- [[ Full Undetected & Assetless Roblox UI Library ]]
 
 local cloneref = cloneref or function(obj) return obj end
 
-type ConfigType__DARKLUA_TYPE_a = {
-    Object: Instance,
-    Camera: Instance?,
-    Interactive: boolean?,
-    Height: number?,
-    Focused: boolean,
-
-    Window: any,
-    Core: any,
-    Tab: any,
-    Parent: Instance,
-}
-
-local a
-a = {
-    cache = {},
-    load = function(b)
-        if not a.cache[b] then
-            a.cache[b] = { c = a[b]() }
+local Services = setmetatable({}, {
+    __index = function(self, serviceName)
+        local rawService = game:GetService(serviceName)
+        if rawService then
+            return cloneref(rawService)
         end
-        return a.cache[b].c
+        return nil
     end
+})
+
+local UserInputService = Services.UserInputService
+local TweenService = Services.TweenService
+local RunService = Services.RunService
+local CoreGui = Services.CoreGui
+local Players = Services.Players
+
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local Library = {
+    Themes = {
+        Default = {
+            MainBackground = Color3.fromRGB(20, 20, 20),
+            SecondaryBackground = Color3.fromRGB(30, 30, 30),
+            Accent = Color3.fromRGB(0, 140, 255),
+            Text = Color3.fromRGB(255, 255, 255),
+            SubText = Color3.fromRGB(160, 160, 160),
+            Border = Color3.fromRGB(40, 40, 40)
+        }
+    },
+    Shapes = {
+        Circle = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512 },
+        Squircle = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 310 },
+        Square = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512 }
+    }
 }
 
-do
-    function a.a()
-        local b
+function Library:Create(instanceType, properties, children)
+    local obj = cloneref(Instance.new(instanceType))
+    for prop, val in pairs(properties or {}) do
+        obj[prop] = val
+    end
+    for _, child in ipairs(children or {}) do
+        child.Parent = obj
+    end
+    return obj
+end
 
-        local d = {
-            New = nil,
-            Init = nil,
-            Shapes = {
-                Circle = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512 },
-                CircleOutline = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512 },
-                CircleGlass = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512 },
+function Library:MakeDraggable(gui, handle)
+    local dragging = false
+    local dragInput, dragStart, startPos
 
-                SquircleH = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325 },
-                SquircleHOutline = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325 },
-                SquircleHGlass = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325 },
-                ["SquircleH-TL-TR"] = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325, AutoChange = false },
-                ["SquircleH-BL-BR"] = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325, AutoChange = false },
+    local function update(input)
+        local delta = input.Position - dragStart
+        gui.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
 
-                SquircleV = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325 },
-                SquircleVOutline = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325 },
-                SquircleVGlass = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 325 },
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
 
-                Squircle = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 310 },
-                SquircleOutline = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 310 },
-                SquircleGlass = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 310 },
-
-                ["Squircle-TL-TR"] = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 310, AutoChange = false },
-                ["Squircle-BL-BR"] = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 310, AutoChange = false },
-                Square = { Image = "", Rect = Rect.new(0, 0, 0, 0), Radius = 512, AutoChange = false },
-            },
-        }
-
-        function d.Init(e, f)
-            b = f
-            return e.New
-        end
-
-        function d.New(e, f, g, h, i, j, l)
-            local m = {
-                Radius = f or 0,
-                Type = g or "Circle",
-                GetRadius = nil,
-                GetType = nil,
-                SetRadius = nil,
-                SetType = nil,
-            }
-
-            local p = {
-                ["Glass-0.7"] = "SquircleGlass",
-                ["Glass-1"] = "SquircleGlass",
-                ["Glass-1.4"] = "SquircleGlass",
-                ["Squircle-Outline"] = "SquircleOutline",
-            }
-
-            local function GetShape(r)
-                return d.Shapes[p[r] or r] or d.Shapes.Circle
-            end
-
-            local r = b.New(j and "ImageButton" or "ImageLabel", {
-                Image = "",
-                ScaleType = l ~= false and "Slice" or nil,
-                SliceCenter = m.Type ~= "Squircle" and Rect.new(0, 0, 0, 0) or nil,
-                SliceScale = 1,
-                ThemeTag = h and h.ThemeTag or nil,
-                BackgroundTransparency = 1,
-            }, i)
-
-            r = cloneref(r)
-
-            for u, v in next, h do
-                if not table.find({ "ThemeTag" }, u) then
-                    r[u] = v
-                end
-            end
-
-            function m.SetRadius(u, v)
-                m.Radius = v
-                r.SliceScale = math.max(v / GetShape(m.Type).Radius, 0.0001)
-                return m
-            end
-
-            function m.SetType(u, v)
-                m.Type = v
-                local x = GetShape(v)
-                r.Image = x.Image
-                r.SliceCenter = x.Rect
-                m:SetRadius(m.Radius)
-                return m
-            end
-
-            function m.GetRadius(u)
-                return m.Radius
-            end
-
-            function m.GetType(u)
-                return m.Type
-            end
-
-            m:SetRadius(f)
-            m:SetType(g)
-
-            b.AddSignal(r:GetPropertyChangedSignal("AbsoluteSize"), function()
-                local u = GetShape(m.Type)
-                if u.AutoChange == false then
-                    return
-                end
-
-                if string.find(m.Type, "Squircle") then
-                    local v = string.find(m.Type, "Glass") and "Glass" or nil
-                    local x = string.find(m.Type, "Outline") and "Outline" or nil
-
-                    local z = math.round(r.AbsoluteSize.X / b.UIScale)
-                    local A = math.round(r.AbsoluteSize.Y / b.UIScale)
-
-                    local B = m.Radius ~= 0 and m.Radius or math.min(z, A) / 2
-                    local C = d.Shapes.Squircle.Radius / 1024
-                    local F = B / math.min(z, A)
-
-                    local G
-
-                    if z > A then
-                        if F >= C then
-                            G = "SquircleH" .. (x or v or "")
-                        else
-                            G = "Squircle" .. (x or v or "")
-                        end
-                    elseif z < A then
-                        if F >= C then
-                            G = "SquircleV" .. (x or v or "")
-                        else
-                            G = "Squircle" .. (x or v or "")
-                        end
-                    else
-                        if F >= C then
-                            G = "Circle" .. (x or v or "")
-                        else
-                            G = "Squircle" .. (x or v or "")
-                        end
-                    end
-
-                    if G ~= m:GetType() then
-                        m:SetType(G)
-                    end
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
                 end
             end)
+        end
+    end)
 
-            return r, m
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+function Library:CreateWindow(titleText)
+    local ScreenGui = Library:Create("ScreenGui", {
+        Name = "UndetectedUI_" .. tostring(math.random(10000, 99999)),
+        ResetOnSpawn = false,
+        DisplayOrder = 999
+    })
+
+    -- Защищенная загрузка в контейнер
+    if gethui then
+        ScreenGui.Parent = gethui()
+    elseif syn and syn.protect_gui then
+        syn.protect_gui(ScreenGui)
+        ScreenGui.Parent = CoreGui
+    else
+        ScreenGui.Parent = CoreGui
+    end
+
+    local MainFrame = Library:Create("Frame", {
+        Name = "MainFrame",
+        Size = UDim2.new(0, 500, 0, 350),
+        Position = UDim2.new(0.5, -250, 0.5, -175),
+        BackgroundColor3 = Library.Themes.Default.MainBackground,
+        BorderSizePixel = 0,
+        ClipsDescendants = true
+    }, {
+        Library:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        Library:Create("UIStroke", {
+            Color = Library.Themes.Default.Border,
+            Thickness = 1
+        })
+    })
+    MainFrame.Parent = ScreenGui
+
+    local TopBar = Library:Create("Frame", {
+        Name = "TopBar",
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundColor3 = Library.Themes.Default.SecondaryBackground,
+        BorderSizePixel = 0
+    }, {
+        Library:Create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        Library:Create("TextLabel", {
+            Name = "Title",
+            Text = titleText or "UI Window",
+            Font = Enum.Font.SourceSansBold,
+            TextSize = 16,
+            TextColor3 = Library.Themes.Default.Text,
+            Size = UDim2.new(1, -50, 1, 0),
+            Position = UDim2.new(0, 15, 0, 0),
+            TextXAlignment = Enum.TextXAlignment.Left,
+            BackgroundTransparency = 1
+        })
+    })
+    TopBar.Parent = MainFrame
+
+    Library:MakeDraggable(MainFrame, TopBar)
+
+    local TabContainer = Library:Create("Frame", {
+        Name = "TabContainer",
+        Size = UDim2.new(0, 130, 1, -40),
+        Position = UDim2.new(0, 0, 0, 40),
+        BackgroundColor3 = Library.Themes.Default.SecondaryBackground,
+        BorderSizePixel = 0
+    })
+    TabContainer.Parent = MainFrame
+
+    local TabListLayout = Library:Create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5)
+    })
+    TabListLayout.Parent = TabContainer
+
+    local ContentContainer = Library:Create("Frame", {
+        Name = "ContentContainer",
+        Size = UDim2.new(1, -140, 1, -50),
+        Position = UDim2.new(0, 135, 0, 45),
+        BackgroundTransparency = 1
+    })
+    ContentContainer.Parent = MainFrame
+
+    local Window = { CurrentTab = nil }
+
+    function Window:CreateTab(tabName)
+        local TabButton = Library:Create("TextButton", {
+            Name = tabName .. "_Button",
+            Size = UDim2.new(1, -10, 0, 30),
+            Position = UDim2.new(0, 5, 0, 0),
+            BackgroundColor3 = Library.Themes.Default.MainBackground,
+            Text = tabName,
+            TextColor3 = Library.Themes.Default.SubText,
+            Font = Enum.Font.SourceSans,
+            TextSize = 14,
+            BorderSizePixel = 0,
+            AutoButtonColor = false
+        }, {
+            Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) })
+        })
+        TabButton.Parent = TabContainer
+
+        local TabContent = Library:Create("ScrollingFrame", {
+            Name = tabName .. "_Content",
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            Visible = false,
+            ScrollBarThickness = 2,
+            CanvasSize = UDim2.new(0, 0, 0, 0)
+        }, {
+            Library:Create("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 8)
+            })
+        })
+        TabContent.Parent = ContentContainer
+
+        TabContent.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabContent.CanvasSize = UDim2.new(0, 0, 0, TabContent.UIListLayout.AbsoluteContentSize.Y + 10)
+        end)
+
+        TabButton.MouseButton1Click:Connect(function()
+            for _, child in ipairs(ContentContainer:GetChildren()) do
+                if child:IsA("ScrollingFrame") then child.Visible = false end
+            end
+            for _, child in ipairs(TabContainer:GetChildren()) do
+                if child:IsA("TextButton") then
+                    child.TextColor3 = Library.Themes.Default.SubText
+                    child.BackgroundColor3 = Library.Themes.Default.MainBackground
+                end
+            end
+            TabContent.Visible = true
+            TabButton.TextColor3 = Library.Themes.Default.Text
+            TabButton.BackgroundColor3 = Library.Themes.Default.Accent
+        end)
+
+        if not Window.CurrentTab then
+            Window.CurrentTab = TabContent
+            TabContent.Visible = true
+            TabButton.TextColor3 = Library.Themes.Default.Text
+            TabButton.BackgroundColor3 = Library.Themes.Default.Accent
         end
 
-        return d
+        local Tab = {}
+
+        function Tab:AddButton(btnText, callback)
+            local Button = Library:Create("TextButton", {
+                Size = UDim2.new(1, -5, 0, 32),
+                BackgroundColor3 = Library.Themes.Default.SecondaryBackground,
+                Text = btnText,
+                TextColor3 = Library.Themes.Default.Text,
+                Font = Enum.Font.SourceSansBold,
+                TextSize = 14,
+                BorderSizePixel = 0
+            }, {
+                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) })
+            })
+            Button.Parent = TabContent
+
+            Button.MouseButton1Click:Connect(function()
+                pcall(callback)
+            end)
+        end
+
+        function Tab:AddToggle(toggleText, defaultState, callback)
+            local state = defaultState or false
+            local ToggleFrame = Library:Create("Frame", {
+                Size = UDim2.new(1, -5, 0, 32),
+                BackgroundColor3 = Library.Themes.Default.SecondaryBackground
+            }, {
+                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) }),
+                Library:Create("TextLabel", {
+                    Text = toggleText,
+                    Size = UDim2.new(1, -40, 1, 0),
+                    Position = UDim2.new(0, 10, 0, 0),
+                    TextColor3 = Library.Themes.Default.Text,
+                    Font = Enum.Font.SourceSans,
+                    TextSize = 14,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    BackgroundTransparency = 1
+                })
+            })
+            ToggleFrame.Parent = TabContent
+
+            local Indicator = Library:Create("Frame", {
+                Size = UDim2.new(0, 18, 0, 18),
+                Position = UDim2.new(1, -28, 0.5, -9),
+                BackgroundColor3 = state and Library.Themes.Default.Accent or Library.Themes.Default.MainBackground
+            }, {
+                Library:Create("UICorner", { CornerRadius = UDim.new(0, 4) })
+            })
+            Indicator.Parent = ToggleFrame
+
+            local ClickArea = Library:Create("TextButton", {
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Text = ""
+            })
+            ClickArea.Parent = ToggleFrame
+
+            ClickArea.MouseButton1Click:Connect(function()
+                state = not state
+                Indicator.BackgroundColor3 = state and Library.Themes.Default.Accent or Library.Themes.Default.MainBackground
+                pcall(callback, state)
+            end)
+        end
+
+        return Tab
     end
 
-    function a.b()
-        -- Карта иконок полностью очищена для андетекта
-        return {}
-    end
+    return Window
 end
+
+return Library
